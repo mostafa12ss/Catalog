@@ -1,0 +1,118 @@
+-- =============================================
+-- Catalog Database - SQLDelight
+-- =============================================
+
+-- 1. Users Table
+CREATE TABLE IF NOT EXISTS User (
+    id TEXT PRIMARY KEY,
+    fullName TEXT NOT NULL,
+    title TEXT,
+    experience TEXT,
+    rating REAL DEFAULT 0.0,
+    role TEXT NOT NULL,           -- JUNIOR or SENIOR
+    pointsBalance INTEGER DEFAULT 0,
+    avatarUrl TEXT,
+    createdAt TEXT
+);
+
+-- 2. Categories Table
+CREATE TABLE IF NOT EXISTS Category (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    count INTEGER DEFAULT 0
+);
+
+-- 3. Guides Table (Main Content)
+CREATE TABLE IF NOT EXISTS Guide (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    subtitle TEXT,
+    category TEXT NOT NULL,
+    price INTEGER NOT NULL,
+    downloads INTEGER DEFAULT 0,
+    rating REAL DEFAULT 0.0,
+    description TEXT,
+    authorId TEXT,
+    isPublished INTEGER DEFAULT 0,
+    createdAt TEXT,
+    updatedAt TEXT
+);
+
+-- 4. Downloaded Files (Offline Content)
+CREATE TABLE IF NOT EXISTS DownloadedFile (
+    id TEXT PRIMARY KEY,
+    guideId TEXT NOT NULL,
+    fileName TEXT NOT NULL,
+    fileType TEXT NOT NULL,           -- video, pdf, docx, zip, image, other
+    localPath TEXT NOT NULL,
+    fileSizeBytes INTEGER,
+    downloadedAt TEXT NOT NULL,
+    isFavorite INTEGER DEFAULT 0,
+
+    FOREIGN KEY(guideId) REFERENCES Guide(id) ON DELETE CASCADE
+);
+
+
+-- 5. User Preferences / Settings
+CREATE TABLE IF NOT EXISTS UserPreference (
+    key TEXT PRIMARY KEY,
+    value TEXT,
+    updatedAt TEXT
+);
+
+
+-- =============================================
+-- QUERIES
+-- =============================================
+
+-- === Guides ===
+selectAllGuides:
+SELECT * FROM Guide ORDER BY downloads DESC;
+
+selectGuideById:
+SELECT * FROM Guide WHERE id = ?;
+
+insertOrReplaceGuide:
+INSERT OR REPLACE INTO Guide
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- === Downloaded Files ===
+selectAllDownloadedFiles:
+SELECT * FROM DownloadedFile ORDER BY downloadedAt DESC;
+
+selectFilesByGuide:
+SELECT * FROM DownloadedFile WHERE guideId = ?;
+
+insertDownloadedFile:
+INSERT OR REPLACE INTO DownloadedFile
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteDownloadedFile:
+DELETE FROM DownloadedFile WHERE id = ?;
+
+toggleFavorite:
+UPDATE DownloadedFile SET isFavorite = ? WHERE id = ?;
+
+-- === Categories ===
+selectAllCategories:
+SELECT * FROM Category ORDER BY name;
+
+insertOrReplaceCategory:
+INSERT OR REPLACE INTO Category VALUES (?, ?, ?);
+
+-- === User ===
+selectCurrentUser:
+SELECT * FROM User LIMIT 1;
+
+insertOrReplaceUser:
+INSERT OR REPLACE INTO User VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateUserPoints:
+UPDATE User SET pointsBalance = ? WHERE id = ?;
+
+-- === Preferences ===
+getPreference:
+SELECT value FROM UserPreference WHERE key = ?;
+
+setPreference:
+INSERT OR REPLACE INTO UserPreference VALUES (?, ?, ?);

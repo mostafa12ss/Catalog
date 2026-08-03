@@ -1,0 +1,24 @@
+import kotlin.collections.List;
+
+CREATE TABLE CourseEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    rank INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    subtitle TEXT NOT NULL,
+    author TEXT NOT NULL,
+    level TEXT NOT NULL,
+    points INTEGER NOT NULL,
+    downloads INTEGER NOT NULL,
+    rating REAL NOT NULL,
+    isSaved INTEGER NOT NULL DEFAULT 0,       -- SQL لا يدعم Boolean مباشرة
+    isDownloaded INTEGER NOT NULL DEFAULT 0,
+    fileUrls TEXT AS List<kotlin.String> NOT NULL   -- نحتاج Adapter لتحويل القائمة لنص
+);
+
+-- استعلامات الجلب والتحديث
+selectAllCourses:
+SELECT * FROM CourseEntity;
+
+insertOrReplaceCourse:
+INSERT OR REPLACE INTO CourseEntity(id, rank, title, subtitle, author, level, points, downloads, rating, isSaved, isDownloaded, fileUrls)
+VALUES ?;

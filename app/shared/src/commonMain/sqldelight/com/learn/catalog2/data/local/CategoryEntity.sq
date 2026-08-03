@@ -1,0 +1,12 @@
+CREATE TABLE CategoryEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    count INTEGER NOT NULL DEFAULT 0
+);
+
+selectAllCategories:
+SELECT * FROM CategoryEntity;
+
+insertOrReplaceCategory:
+INSERT OR REPLACE INTO CategoryEntity(id, name, count)
+VALUES ?;
