@@ -23,9 +23,14 @@ class AuthRepositoryImpl(
                 is SessionStatus.Authenticated -> {
                     val user = status.session.user
                     val metadata = user?.userMetadata
-                    
+
                     val roleString = metadata?.get("user_type")?.toString()?.removeSurrounding("\"")
-                    val role = if (roleString == "SENIOR") UserRole.SENIOR else UserRole.JUNIOR
+                    val role = when {
+                        roleString.equals("expert", ignoreCase = true) ||
+                                roleString.equals("Senior Expert", ignoreCase = true) ||
+                                roleString.equals("SENIOR", ignoreCase = true) -> UserRole.SENIOR
+                        else -> UserRole.JUNIOR
+                    }
                     
                     AppUser(
                         id = user?.id.orEmpty(),

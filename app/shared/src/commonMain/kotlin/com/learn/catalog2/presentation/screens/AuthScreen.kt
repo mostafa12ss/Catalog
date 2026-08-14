@@ -57,7 +57,7 @@ fun AuthScreenContent(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var fullName by remember { mutableStateOf("") }
-    var selectedRole by remember { mutableStateOf("student") } // "student" أو "expert"
+    var selectedRole by remember { mutableStateOf("Junior / Student") }
     val isLoading = uiState == AuthUiState.Loading
 
     BoxWithConstraints(
@@ -224,26 +224,35 @@ fun AuthScreenContent(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     RoleCard(
                         label = stringResource(Res.string.junior),
-                        selected = selectedRole == "student",
+                        selected = selectedRole == "Junior / Student",
                         modifier = Modifier.weight(1f),
-                        onClick = { selectedRole = "student" }
+                        onClick = { selectedRole = "Junior / Student" }
                     )
                     RoleCard(
                         label = stringResource(Res.string.senior),
-                        selected = selectedRole == "expert",
+                        selected = selectedRole == "Senior Expert",
                         modifier = Modifier.weight(1f),
-                        onClick = { selectedRole = "expert" }
+                        onClick = { selectedRole = "Senior Expert" }
                     )
                 }
             }
 
+            // 💡 عرض الخطأ بشكل مبسط وأنيق
             if (uiState is AuthUiState.Error) {
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    uiState.message,
-                    color = MaterialTheme.colorScheme.error,
-                    fontSize = 13.sp
-                )
+                Spacer(Modifier.height(14.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = uiState.message,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+                    )
+                }
             }
 
             Spacer(Modifier.height(24.dp))

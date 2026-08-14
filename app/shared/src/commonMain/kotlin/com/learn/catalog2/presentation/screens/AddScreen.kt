@@ -12,13 +12,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.learn.catalog2.presentation.viewmodels.AddGuideViewModel
 import org.koin.compose.viewmodel.koinViewModel
-import org.jetbrains.compose.resources.stringResource
-import catalog2.app.shared.generated.resources.Res
-import catalog2.app.shared.generated.resources.next
-import catalog2.app.shared.generated.resources.back
-import catalog2.app.shared.generated.resources.close
-import catalog2.app.shared.generated.resources.save_publish
 import org.jetbrains.compose.resources.painterResource
+import catalog2.app.shared.generated.resources.Res
+import catalog2.app.shared.generated.resources.close
 
 @Composable
 fun AddNewCatalogScreen(
@@ -31,6 +27,9 @@ fun AddNewCatalogScreen(
     val price by viewModel.price.collectAsState()
     val selectedFileTypes by viewModel.selectedFileTypes.collectAsState()
     val categories by viewModel.categories.collectAsState()
+
+    // 💡 1. إظهار حالة الرفع لمنع الضغط المزدوج وإظهار المؤشر
+    val isPublishing by viewModel.isPublishing.collectAsState()
 
     Scaffold(
         topBar = {
@@ -63,7 +62,13 @@ fun AddNewCatalogScreen(
                     selectedFileTypes = selectedFileTypes,
                     onFileTypeToggle = viewModel::toggleFileType,
                     onBack = viewModel::previousStep,
-                    onPublish = { viewModel.publishGuide(onDismiss) }
+                    // 💡 2. تمرير دالة إرفاق الملفات لـ AttachMediaStep لتغذية _selectedFiles
+                    onFileSelected = viewModel::attachPlatformFile,
+                    isPublishing = isPublishing,
+                    onPublish = {
+                        println("LOG: Publish Button Clicked!")
+                        viewModel.publishGuide(onDismiss)
+                    }
                 )
             }
         }

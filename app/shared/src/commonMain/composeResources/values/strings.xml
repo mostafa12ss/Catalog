@@ -90,4 +90,6 @@
     <string name="zip_label">Compressed ZIP</string>
     <string name="zip_sub">.zip / .rar</string>
     <string name="results">%1$d results</string>
+    <string name="download_success">Downloaded %1$s successfully!</string>
+    <string name="download_failed">Download failed: %1$s</string>
 </resources>

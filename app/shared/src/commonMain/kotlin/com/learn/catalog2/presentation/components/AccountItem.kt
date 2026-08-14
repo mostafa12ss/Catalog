@@ -1,31 +1,55 @@
 package com.learn.catalog2.presentation.components
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun AccountItem(title: String, value: String) {
-    Row(
+fun AccountSettingRow(
+    title: String,
+    valueText: String? = null,
+    isSwitch: Boolean = false,
+    switchState: Boolean = false,
+    isDestructive: Boolean = false,
+    onSwitchChange: ((Boolean) -> Unit)? = null,
+    onClick: (() -> Unit)? = null
+) {
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .clickable(enabled = onClick != null) { onClick?.invoke() },
+        color = Color.Transparent
     ) {
-        Text(text = title, style = MaterialTheme.typography.bodyLarge)
-        if (value.isNotEmpty()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp, horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
             Text(
-                text = value,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground
             )
+
+            if (isSwitch) {
+                Switch(
+                    checked = switchState,
+                    onCheckedChange = { onSwitchChange?.invoke(it) }
+                )
+            } else if (valueText != null) {
+                Text(
+                    text = valueText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

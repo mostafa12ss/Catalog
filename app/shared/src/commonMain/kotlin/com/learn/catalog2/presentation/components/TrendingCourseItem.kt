@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.learn.catalog2.domain.models.DataModels.Course
 
 @Composable
-fun TrendingCourseItem(course: Course) {
+fun TrendingCourseItem(course: Course, onClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(

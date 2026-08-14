@@ -9,8 +9,11 @@ data class Course(
     val level: String = "Beginner",
     val points: Int,
     val downloads: Int,
-    val rating: Float,
+    val rating: Float=0.0f,
     val isSaved: Boolean = false,
     val isDownloaded: Boolean = false, // إضافة الخاصية المفقودة
-    val fileUrls: List<String> = emptyList()
+    val fileUrls: List<String> = emptyList(),
+    val localPath: String? = null,           // 👈 المسار المحلي بعد التنزيل (C:/Downloads/CV_Mahmoud.pdf)
+    val categoryId: String = "",       // 👈 لحفظ ID الفئة
+    val categoryName: String = ""
 )

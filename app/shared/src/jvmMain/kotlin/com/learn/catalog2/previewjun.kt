@@ -78,7 +78,8 @@ fun JuniorHomeScreenDesktopPreview() {
                     screenTitle = "Catalog",
                     userRole = UserRole.JUNIOR,
                     pointsBalance = 1250,
-                    onRoleClick = {}
+                    onRoleClick = {},
+                    onWalletClick = TODO()
                 )
             },
             bottomBar = {
@@ -94,7 +95,10 @@ fun JuniorHomeScreenDesktopPreview() {
                     guides = mockGuides,
                     categories = mockCategories,
                     onSearch = {},
-                    onFavoriteToggle = { _, _ -> }
+                    onFavoriteToggle = { _, _ -> },
+                    downloadingIds = TODO(),
+                    onDownloadClick = TODO(),
+                    onRateClick = TODO(),
                 )
             }
         }

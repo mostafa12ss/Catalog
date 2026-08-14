@@ -17,7 +17,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.learn.catalog2.domain.models.UserRole
 import com.learn.catalog2.presentation.screens.*
-import com.learn.catalog2.presentation.viewmodels.RoleViewModel
+import com.learn.catalog2.presentation.viewmodels.ProfileViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -26,8 +26,9 @@ fun MainScaffold() {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
-    val roleViewModel: RoleViewModel = koinViewModel()
-    val currentRole by roleViewModel.currentRole.collectAsState()
+    val profileViewModel: ProfileViewModel = koinViewModel()
+    val currentRole by profileViewModel.currentRole.collectAsState()
+    val pointsBalance by profileViewModel.pointsBalance.collectAsState()
 
     val screenTitle = when (currentRoute) {
         AppDestination.Home.route -> if (currentRole == UserRole.JUNIOR) "Learn & Download" else "Provide Guides"
@@ -35,25 +36,38 @@ fun MainScaffold() {
         AppDestination.Offline.route -> "Offline Library"
         AppDestination.Profile.route -> "My Profile"
         "add_catalog" -> "Add Catalog"
+        "wallet" -> "My Wallet"
         else -> ""
     }
 
     Scaffold(
         topBar = {
+            // فحص ما إذا كانت الشاشة الحالية شاشة فرعية تحتاج زر رجوع
+            val isSubScreen = currentRoute == "wallet" || currentRoute == "add_catalog"
+
             AppTopBar(
                 screenTitle = screenTitle,
                 userRole = currentRole,
-                pointsBalance = 1340,
-                onRoleClick = { roleViewModel.toggleRole() }
+                pointsBalance = pointsBalance,
+                showBackButton = isSubScreen,
+                onBackClick = {
+                    // 👈 تنفيذ العودة أينما كان المستخدم
+                    navController.popBackStack()
+                },
+                onRoleClick = { profileViewModel.toggleRole() },
+                onWalletClick = {
+                    if (currentRoute != "wallet") {
+                        navController.navigate("wallet")
+                    }
+                }
             )
         },
         bottomBar = {
-            if (currentRoute != "add_catalog") {
+            if (currentRoute != "add_catalog" && currentRoute != "wallet") {
                 AppBottomBar(navController)
             }
         }
     ) { innerPadding ->
-        // تجميع المحتوى في منتصف الشاشة للـ Web و Desktop حتى لا يلتصق بالحواف
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -63,7 +77,7 @@ fun MainScaffold() {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .widthIn(max = 840.dp) // تحديد أقصى عرض احترافي للشاشات العريضة
+                    .widthIn(max = 840.dp)
             ) {
                 NavHost(
                     navController = navController,
@@ -86,6 +100,18 @@ fun MainScaffold() {
                     }
                     composable("add_catalog") {
                         AddNewCatalogScreen(onDismiss = { navController.popBackStack() })
+                    }
+
+                    // 💡 الربط الصحيح لـ WalletScreen
+                    composable("wallet") {
+                        WalletScreen(
+                            onTopUpClick = {
+                                // أضف منطق فتح نافذة الشحن هنا عند الحاجة
+                            },
+                            onWithdrawClick = {
+                                // أضف منطق عملية السحب هنا عند الحاجة
+                            }
+                        )
                     }
                 }
             }

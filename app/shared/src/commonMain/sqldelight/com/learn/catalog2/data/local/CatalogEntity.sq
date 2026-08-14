@@ -8,12 +8,44 @@ CREATE TABLE CatalogEntity (
     isDownloaded INTEGER NOT NULL DEFAULT 0,
     isFavorite INTEGER NOT NULL DEFAULT 0,
     points INTEGER NOT NULL DEFAULT 0,
-    rating REAL NOT NULL DEFAULT 0.0
+    rating REAL NOT NULL DEFAULT 0.0,
+    category_id TEXT,
+    file_url TEXT,
+    local_path TEXT
 );
 
 selectAllCatalogs:
 SELECT * FROM CatalogEntity;
 
 insertOrReplaceCatalog:
-INSERT OR REPLACE INTO CatalogEntity(id, title, description, author, level, downloads, isDownloaded, isFavorite, points, rating)
+INSERT OR REPLACE INTO CatalogEntity(id, title, description, author, level, downloads, isDownloaded, isFavorite, points, rating, category_id, file_url,local_path )
 VALUES ?;
+
+-- 💡 استعلامات إضافية مفيدة لإدارة التقييم والتحميل:
+
+updateRating:
+UPDATE CatalogEntity
+SET rating = :rating
+WHERE id = :id;
+
+updateDownloadStatus:
+UPDATE CatalogEntity
+SET isDownloaded = :isDownloaded
+WHERE id = :id;
+
+selectDownloadedCatalogs:
+SELECT * FROM CatalogEntity
+WHERE isDownloaded = 1;
+
+-- استعلام يجلب الفئة مع عدد الكتالوجات التابعة لها
+selectCategoriesWithCount:
+SELECT
+    category_id,
+    COUNT(*) AS catalogCount
+FROM CatalogEntity
+GROUP BY category_id;
+
+selectCatalogsByCategorySorted:
+SELECT * FROM CatalogEntity
+WHERE category_id = :categoryId
+ORDER BY downloads DESC;

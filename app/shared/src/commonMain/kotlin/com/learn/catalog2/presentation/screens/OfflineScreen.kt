@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.sp
 import catalog2.app.shared.generated.resources.Res
 import catalog2.app.shared.generated.resources.*
 import com.learn.catalog2.domain.models.DataModels.Course
+import com.learn.catalog2.presentation.utils.FileOpener
 import com.learn.catalog2.presentation.viewmodels.ExploreViewModel
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -24,14 +25,12 @@ import org.koin.compose.viewmodel.koinViewModel
 fun OfflineScreen(
     viewModel: ExploreViewModel = koinViewModel()
 ) {
-    // جلب الكتالوجات المحملة فقط من الـ Repository
-    val downloadedGuides by viewModel.trendingCourses.collectAsState() 
-    // ملاحظة: في النسخة النهائية سنضيف Flow مخصص لـ getDownloadedGuides() في ViewModel
+    val downloadedGuides by viewModel.trendingCourses.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
-        
+
         Spacer(Modifier.height(16.dp))
-        
+
         Text(
             text = "Your Offline Library",
             style = MaterialTheme.typography.headlineSmall,
@@ -62,6 +61,9 @@ fun OfflineScreen(
 
 @Composable
 private fun OfflineGuideCard(guide: Course) {
+    // 💡 إنشاء Object من FileOpener داخل الـ Composable
+    val fileOpener = remember { FileOpener() }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -90,7 +92,15 @@ private fun OfflineGuideCard(guide: Course) {
         }
 
         Button(
-            onClick = { /* فتح الملف باستخدام FileSystem لكل منصة */ },
+            onClick = {
+                // 💡 استخدام المسار المحلي المفضّل، أو التراجع للرابط إن لم يتوفر
+                val pathToOpen = guide.localPath ?: guide.fileUrls.firstOrNull() ?: ""
+
+                println("🔍 File Path to open: $pathToOpen")
+                if (pathToOpen.isNotEmpty()) {
+                    fileOpener.openFile(pathToOpen)
+                }
+            },
             shape = RoundedCornerShape(10.dp),
             contentPadding = PaddingValues(horizontal = 16.dp)
         ) {

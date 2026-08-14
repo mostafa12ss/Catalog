@@ -16,23 +16,54 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.learn.catalog2.data.repository.UserProfileStats
 import com.learn.catalog2.domain.models.AppUser
 
 @Composable
-fun StatsSection(user: AppUser, isSeniorMode: Boolean) {
+fun StatsSection(
+    user: AppUser,
+    isSeniorMode: Boolean,
+    stats: UserProfileStats = UserProfileStats()
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         if (!isSeniorMode) {
-            StatCard(title = "3", subtitle = "Guides Owned")
-            StatCard(title = "265", subtitle = "Pts Spent")
-            StatCard(title = "3", subtitle = "Offline")
+            // Junior Mode
+            StatCard(title = stats.guidesOwned.toString(), subtitle = "Guides Owned")
+            StatCard(title = stats.ptsSpent.toString(), subtitle = "Pts Spent")
+            StatCard(title = stats.offlineGuides.toString(), subtitle = "Offline")
         } else {
-            StatCard(title = "2", subtitle = "Published")
-            StatCard(title = "2,755", subtitle = "Downloads")
-            StatCard(title = "26.9K", subtitle = "Earned (pts)")
+            // Senior Mode (ديناميكي الآن)
+            StatCard(
+                title = stats.publishedGuidesCount.toString(),
+                subtitle = "Published"
+            )
+            StatCard(
+                title = formatNumber(stats.totalDownloads),
+                subtitle = "Downloads"
+            )
+            StatCard(
+                title = formatNumber(stats.totalEarnedPoints),
+                subtitle = "Earned (pts)"
+            )
         }
+    }
+}
+
+// دالة لتنسيق الأرقام الكبيرة (مثل 2.7K أو 26.9K)
+private fun formatNumber(number: Int): String {
+    return when {
+        number >= 1_000_000 -> {
+            val value = (number / 100_000).toDouble() / 10.0
+            "${value}M"
+        }
+        number >= 1_000 -> {
+            val value = (number / 100).toDouble() / 10.0
+            "${value}K"
+        }
+        else -> number.toString()
     }
 }
 

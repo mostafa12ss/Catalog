@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.sqldelight)
-}
+    alias(libs.plugins.kotlin.serialization)}
 
 kotlin {
     jvmToolchain(11)
@@ -56,6 +56,12 @@ kotlin {
             implementation(libs.supabase.realtime)
 
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+
+            implementation("io.github.vinceglb:filekit-compose:0.8.0")
+
+            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")
+
+            implementation("io.github.jan-tennert.supabase:storage-kt:<YOUR_SUPABASE_VERSION>")
 
             // Koin + Navigation
             implementation(project.dependencies.platform(libs.koin.bom))

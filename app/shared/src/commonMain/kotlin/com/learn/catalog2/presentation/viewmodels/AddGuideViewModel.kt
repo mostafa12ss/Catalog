@@ -4,8 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.learn.catalog2.data.repository.GuideRepository
 import com.learn.catalog2.domain.models.DataModels.Category
+import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 class AddGuideViewModel(
     private val repository: GuideRepository
@@ -13,24 +16,12 @@ class AddGuideViewModel(
 
     // قائمة افتراضية نرجع لها لو قاعدة البيانات لسة فاضية
     private val defaultCategories = listOf(
-        Category(
-            "1", "Hydraulics",
-
-        ),
-        Category(
-            "2", "Electrical",
-        ),
-        Category(
-            "3", "Pneumatics",
-
-        ),
-        Category(
-            "4", "Mechanical",
-
-        )
+        Category("1", "Hydraulics"),
+        Category("2", "Electrical"),
+        Category("3", "Pneumatics"),
+        Category("4", "Mechanical")
     )
 
-    // دمج بيانات الـ Repository مع الـ Fallback لضمان عدم ظهور القائمة فاضية أبداً
     val categories: StateFlow<List<Category>> = repository.getCategories()
         .map { list -> if (list.isEmpty()) defaultCategories else list }
         .catch { emit(defaultCategories) }
@@ -58,12 +49,12 @@ class AddGuideViewModel(
     private val _selectedFileTypes = MutableStateFlow<Set<String>>(emptySet())
     val selectedFileTypes: StateFlow<Set<String>> = _selectedFileTypes.asStateFlow()
 
+    // حفظ الملف المحدد مع اسمه
     private val _selectedFiles = MutableStateFlow<List<Pair<String, ByteArray>>>(emptyList())
 
     fun updateTitle(title: String) { _guideTitle.value = title }
     fun updatePrice(price: String) { _price.value = price }
 
-    // استقبال الـ categoryId مباشرة
     fun selectCategory(categoryId: String) {
         _selectedCategory.value = categoryId
     }
@@ -74,8 +65,18 @@ class AddGuideViewModel(
         }
     }
 
-    fun addFile(name: String, data: ByteArray) {
-        _selectedFiles.update { it + (name to data) }
+    // 💡 دالة جديدة لاستقبال PlatformFile تحويلها إلى ByteArray ورسمها للملفات
+    fun attachPlatformFile(file: PlatformFile) {
+        viewModelScope.launch {
+            try {
+                val bytes = file.readBytes()
+                _selectedFiles.update { current ->
+                    current + (file.name to bytes)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     fun nextStep() {
@@ -86,14 +87,22 @@ class AddGuideViewModel(
         if (_currentStep.value > 1) _currentStep.value -= 1
     }
 
+    @OptIn(ExperimentalTime::class)
     fun publishGuide(onSuccess: () -> Unit) {
         if (_isPublishing.value) return
 
         viewModelScope.launch {
             _isPublishing.value = true
             try {
+                println("LOG: Selected Files count = ${_selectedFiles.value.size}")
+
                 val uploadedUrls = _selectedFiles.value.map { (name, data) ->
-                    repository.uploadFile("catalogs", "uploads/$name", data)
+                    val uniqueName = "${Clock.System.now().toEpochMilliseconds()}_$name"
+                    val uploadResult = repository.uploadFile("catalogs", "uploads/$uniqueName", data)
+                    // Extract String from Result<String> to pass to createCatalog
+                    val url = uploadResult.getOrThrow()
+                    println("LOG: Uploaded URL = $url")
+                    url
                 }
 
                 val result = repository.createCatalog(
@@ -104,10 +113,18 @@ class AddGuideViewModel(
                     fileUrls = uploadedUrls
                 )
 
-                if (result.isSuccess) {
+                result.onSuccess {
+                    println("LOG: Catalog Created Successfully!")
                     onSuccess()
+                }.onFailure { exception ->
+                    // 💥 هنا هيظهر لك السبب الحقيقي لعدم الرفع
+                    println("LOG ERROR (Database): ${exception.message}")
+                    exception.printStackTrace()
                 }
+
             } catch (e: Exception) {
+                // 💥 هنا هيظهر لك السبب لو مشكلة في الـ Storage/Upload
+                println("LOG ERROR (Storage/Upload): ${e.message}")
                 e.printStackTrace()
             } finally {
                 _isPublishing.value = false

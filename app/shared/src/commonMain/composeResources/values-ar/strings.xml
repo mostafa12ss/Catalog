@@ -83,4 +83,6 @@
     <string name="zip_label">ملف مضغوط ZIP</string>
     <string name="zip_sub">.zip / .rar</string>
     <string name="results">%1$d نتيجة</string>
+    <string name="download_success">تم تحميل %1$s بنجاح ✅</string>
+    <string name="download_failed">فشل التحميل: %1$s ❌</string>
 </resources>

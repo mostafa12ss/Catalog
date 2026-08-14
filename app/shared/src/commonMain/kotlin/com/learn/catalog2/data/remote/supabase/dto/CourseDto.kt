@@ -1,7 +1,7 @@
-// remote/supabase/dto/CourseDto.kt
 package com.learn.catalog2.remote.supabase.dto
 
 import com.learn.catalog2.domain.models.DataModels.Course
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -20,18 +20,22 @@ data class CourseDto(
     val downloads: Int = 0,
     val rating: Float = 0f,
     val is_published: Boolean = false,
-    val Profiles: ProfileRef? = null // بيتملى تلقائيًا عن طريق join مع جدول Profiles
+    val category_id: String? = null,
+    val file_url: String? = null,
+    @SerialName("profiles") 
+    val profiles: ProfileRef? = null
 ) {
     fun toCourse() = Course(
         id = id,
         rank = 0,
         title = title,
         subtitle = description ?: "",
-        author = Profiles?.full_name ?: "Eng. Unknown",
+        author = profiles?.full_name ?: "Eng. Unknown",
         level = difficultyToLevel(difficulty),
         points = price_points,
         downloads = downloads,
-        rating = rating
+        rating = rating,
+        fileUrls = if (file_url != null) listOf(file_url) else emptyList()
     )
 }
 

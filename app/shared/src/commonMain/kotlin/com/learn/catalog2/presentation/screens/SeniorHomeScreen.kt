@@ -15,19 +15,34 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import catalog2.app.shared.generated.resources.Res
 import catalog2.app.shared.generated.resources.*
+import com.learn.catalog2.domain.models.AppUser
 import com.learn.catalog2.domain.models.DataModels.Course
+import com.learn.catalog2.presentation.components.StatsSection
 import com.learn.catalog2.presentation.viewmodels.ExploreViewModel
-import com.learn.catalog2.presentation.utils.withThousandsSeparator
+import com.learn.catalog2.presentation.viewmodels.ProfileViewModel
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun SeniorHomeScreen(
     onAddCatalogClick: () -> Unit,
-    viewModel: ExploreViewModel = koinViewModel()
+    profileViewModel: ProfileViewModel = koinViewModel(),
+    exploreViewModel: ExploreViewModel = koinViewModel()
 ) {
-    val myGuides by viewModel.trendingCourses.collectAsState() // افترضنا هنا أنها تجلب بيانات المستخدم حالياً
-    val totalPoints by viewModel.pointsBalance.collectAsState()
+    // 💡 1. جلب بيانات المستخدم والإحصائيات والكتالوجات الحقيقية
+    val userStats by profileViewModel.userStats.collectAsState()
+    val userNullable by profileViewModel.user.collectAsState()
+    val user = userNullable ?: AppUser.getDemoUser()
+
+    val allCourses by exploreViewModel.allCourses.collectAsState()
+
+    // 💡 2. فلترة الكتالوجات المنشورة بواسطة المستخدم الحالي فقط
+    val myGuides = remember(allCourses, user) {
+        allCourses.filter { course ->
+            course.author.equals(user.fullName, ignoreCase = true) ||
+                    course.author.equals(user.id, ignoreCase = true)
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -38,7 +53,14 @@ fun SeniorHomeScreen(
     ) {
         Spacer(Modifier.height(4.dp))
 
-        // كارت نشر كتالوج جديد
+        // 💡 3. عرض كروت الإحصائيات الحقيقية وضع الـ Senior (Published / Downloads / Earned)
+        StatsSection(
+            user = user,
+            isSeniorMode = true,
+            stats = userStats
+        )
+
+        // 4. كارت نشر كتالوج جديد
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -71,47 +93,29 @@ fun SeniorHomeScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        // عرض الكتالوجات الحقيقية
+        // 5. عرض الكتالوجات المرفوعة المفلترة
         if (myGuides.isEmpty()) {
-            Text(
-                "No catalogs published yet.",
-                modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 30.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "لم تقم بنشر أي كتالوجات بعد.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         } else {
-            myGuides.forEach { guide ->
-                PublishedGuideCard(guide)
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                myGuides.forEach { guide ->
+                    PublishedGuideCard(guide)
+                }
             }
         }
 
-        // كارت إجمالي الأرباح - مرتبط بالبيانات الحقيقية
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
-                .padding(16.dp)
-        ) {
-            Text(
-                stringResource(Res.string.total_earnings),
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(totalPoints.withThousandsSeparator(), fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color(0xFFEDA13B))
-                Spacer(Modifier.width(6.dp))
-                Text("pts", fontSize = 14.sp, color = Color(0xFFEDA13B), modifier = Modifier.padding(bottom = 4.dp))
-            }
-            Spacer(Modifier.height(4.dp))
-            Text(
-                stringResource(Res.string.this_month, "+12.4%"), // يمكن حسابها لاحقاً
-                fontSize = 12.sp,
-                color = Color(0xFF3FAE5A)
-            )
-        }
-
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
     }
 }
 
@@ -129,7 +133,6 @@ private fun PublishedGuideCard(guide: Course) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(guide.title, fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.weight(1f))
-            // حالة الكتالوج (Live/Pending)
             Box(
                 modifier = Modifier
                     .background(Color(0xFF3FAE5A).copy(alpha = 0.15f), RoundedCornerShape(6.dp))
@@ -142,7 +145,6 @@ private fun PublishedGuideCard(guide: Course) {
         Spacer(Modifier.height(10.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            // حساب الأرباح (النقاط * عدد التحميلات)
             val revenue = (guide.points * guide.downloads).toString()
             StatBox(revenue, stringResource(Res.string.revenue), Color(0xFF3FAE5A), Modifier.weight(1f))
             StatBox(guide.downloads.toString(), stringResource(Res.string.downloads), MaterialTheme.colorScheme.onSurfaceVariant, Modifier.weight(1f))

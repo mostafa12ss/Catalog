@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import catalog2.app.shared.generated.resources.Res
+import catalog2.app.shared.generated.resources.arrowupward // استخدم أيقونة الرجوع المتوفرة لديك أو arrow_back
 import catalog2.app.shared.generated.resources.baseline_expand_more_24
 import catalog2.app.shared.generated.resources.junior
 import catalog2.app.shared.generated.resources.outline_account_balance_wallet_24
@@ -29,15 +30,17 @@ fun AppTopBar(
     screenTitle: String,
     userRole: UserRole,          // "JUNIOR" أو "SENIOR"
     pointsBalance: Int,
-    onRoleClick: () -> Unit
+    onRoleClick: () -> Unit,
+    showBackButton: Boolean = false,
+    onBackClick: () -> Unit = {},
+    onWalletClick: () -> Unit
 ) {
-    // جلب ألوان الثيم الحالي تلقائياً
     val colorScheme = MaterialTheme.colorScheme
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(colorScheme.background) // الحفاظ على خلفية التطبيق المتناسقة
+            .background(colorScheme.background)
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
         Row(
@@ -45,20 +48,41 @@ fun AppTopBar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(
-                    text = stringResource(Res.string.your_role),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = screenTitle,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colorScheme.onBackground
-                )
+            // 💡 تجميع سهم الرجوع مع العناوين في Row
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // إظهار سهم الرجوع فقط إذا كنا في شاشة فرعية مثل "wallet" أو "add_catalog"
+                if (showBackButton) {
+                    IconButton(
+                        onClick = onBackClick,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            // 📌 استبدل باسم أيكونة الرجوع الموجودة لديك في Res.drawable
+                            painter = painterResource(Res.drawable.arrowupward),
+                            contentDescription = "Back",
+                            tint = colorScheme.onBackground
+                        )
+                    }
+                }
+
+                Column {
+                    Text(
+                        text = stringResource(Res.string.your_role),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = screenTitle,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colorScheme.onBackground
+                    )
+                }
             }
 
             Row(
@@ -83,7 +107,7 @@ fun AppTopBar(
                     Icon(
                         painter = painterResource(Res.drawable.outline_lightning_stand_24),
                         contentDescription = null,
-                        tint = colorScheme.primary, // لون الـ Teal الأساسي من الثيم
+                        tint = colorScheme.primary,
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
@@ -100,10 +124,11 @@ fun AppTopBar(
                     )
                 }
 
-                // شارة رصيد النقاط (تم تحسين توافق ألوانها مع التصميم الفاتح والداكن)
+                // شارة رصيد النقاط (فتح المحفظة)
                 Row(
                     modifier = Modifier
                         .background(colorScheme.primaryContainer.copy(alpha = 0.15f), RoundedCornerShape(50))
+                        .clickable { onWalletClick() }
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -111,7 +136,7 @@ fun AppTopBar(
                     Icon(
                         painter = painterResource(Res.drawable.outline_account_balance_wallet_24),
                         contentDescription = null,
-                        tint = colorScheme.primary, // استخدام لون الهوية البصرية للنقاط بدلاً من اللون البرتقالي الثابت
+                        tint = colorScheme.primary,
                         modifier = Modifier.size(16.dp)
                     )
                     Text(

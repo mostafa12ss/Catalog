@@ -9,7 +9,13 @@ fun HomeScreen(
     onAddCatalogClick: () -> Unit
 ) {
     when (role) {
-        UserRole.JUNIOR -> JuniorHomeScreen()
-        UserRole.SENIOR -> SeniorHomeScreen(onAddCatalogClick = onAddCatalogClick)
+        UserRole.JUNIOR -> {
+            JuniorHomeScreen()
+        }
+        UserRole.SENIOR -> {
+            SeniorHomeScreen(
+                onAddCatalogClick = onAddCatalogClick
+            )
+        }
     }
 }
