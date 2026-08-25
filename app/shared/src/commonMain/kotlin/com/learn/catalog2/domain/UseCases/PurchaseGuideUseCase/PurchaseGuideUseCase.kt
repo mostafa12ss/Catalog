@@ -6,7 +6,8 @@ import com.learn.catalog2.domain.models.DataModels.Course
 import com.learn.catalog2.domain.repository.WalletRepository
 import kotlinx.coroutines.flow.first
 
-sealed class PurchaseResult {
+sealed class
+PurchaseResult {
     object Success : PurchaseResult()
     data class InsufficientPoints(val required: Int, val available: Int) : PurchaseResult()
     data class Error(val message: String) : PurchaseResult()

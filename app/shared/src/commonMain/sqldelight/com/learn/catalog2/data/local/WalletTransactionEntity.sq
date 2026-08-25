@@ -16,3 +16,6 @@ SELECT SUM(amount) AS SUM FROM WalletTransactionEntity;
 insertOrReplaceTransaction:
 INSERT OR REPLACE INTO WalletTransactionEntity(id, title, date, amount, isIncome, timestamp)
 VALUES ?;
+
+deleteAllTransactions:
+DELETE FROM WalletTransactionEntity;

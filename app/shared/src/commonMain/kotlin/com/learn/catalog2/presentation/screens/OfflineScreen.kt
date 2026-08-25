@@ -14,11 +14,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import catalog2.app.shared.generated.resources.Res
-import catalog2.app.shared.generated.resources.*
+import catalog2.app.shared.generated.resources.available_offline
+import catalog2.app.shared.generated.resources.no_downloads_sub
+import catalog2.app.shared.generated.resources.no_downloads_title
+import catalog2.app.shared.generated.resources.offline_library_sub
+import catalog2.app.shared.generated.resources.offline_library_title
+import catalog2.app.shared.generated.resources.open_button
+import catalog2.app.shared.generated.resources.outline_description_24
+import catalog2.app.shared.generated.resources.outline_download_2_24
 import com.learn.catalog2.domain.models.DataModels.Course
+import com.learn.catalog2.presentation.Navigation.LocalBottomPadding
 import com.learn.catalog2.presentation.utils.FileOpener
 import com.learn.catalog2.presentation.viewmodels.ExploreViewModel
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -27,31 +36,44 @@ fun OfflineScreen(
 ) {
     val downloadedGuides by viewModel.trendingCourses.collectAsState()
 
-    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
+    // 🟢 جلب قيمة الـ Padding السفلي الخاصة بالبار الطافي من الـ CompositionLocal
+    val bottomPadding = LocalBottomPadding.current
 
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp)
+    ) {
         Spacer(Modifier.height(16.dp))
 
+        // Title & Subtitle / العنوان والشرح
         Text(
-            text = "Your Offline Library",
+            text = stringResource(Res.string.offline_library_title),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
         Text(
-            text = "Access your downloaded guides anytime, anywhere.",
+            text = stringResource(Res.string.offline_library_sub),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Spacer(Modifier.height(20.dp))
 
-        if (downloadedGuides.none { it.isDownloaded }) {
-            EmptyOfflineState()
+        val offlineItems = downloadedGuides.filter { it.isDownloaded }
+
+        if (offlineItems.isEmpty()) {
+            EmptyOfflineState(bottomPadding = bottomPadding)
         } else {
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(bottom = 20.dp)
+                contentPadding = PaddingValues(
+                    top = 4.dp,
+                    bottom = bottomPadding + 24.dp // 🟢 رفع آخر عنصر فوق الشريط العائم بوضوح
+                ),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                items(downloadedGuides.filter { it.isDownloaded }, key = { it.id }) { guide ->
+                items(offlineItems, key = { it.id }) { guide ->
                     OfflineGuideCard(guide = guide)
                 }
             }
@@ -61,7 +83,6 @@ fun OfflineScreen(
 
 @Composable
 private fun OfflineGuideCard(guide: Course) {
-    // 💡 إنشاء Object من FileOpener داخل الـ Composable
     val fileOpener = remember { FileOpener() }
 
     Row(
@@ -88,12 +109,15 @@ private fun OfflineGuideCard(guide: Course) {
 
         Column(modifier = Modifier.weight(1f)) {
             Text(guide.title, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-            Text("Available Offline", fontSize = 12.sp, color = Color(0xFF3FAE5A))
+            Text(
+                text = stringResource(Res.string.available_offline),
+                fontSize = 12.sp,
+                color = Color(0xFF3FAE5A)
+            )
         }
 
         Button(
             onClick = {
-                // 💡 استخدام المسار المحلي المفضّل، أو التراجع للرابط إن لم يتوفر
                 val pathToOpen = guide.localPath ?: guide.fileUrls.firstOrNull() ?: ""
 
                 println("🔍 File Path to open: $pathToOpen")
@@ -104,15 +128,17 @@ private fun OfflineGuideCard(guide: Course) {
             shape = RoundedCornerShape(10.dp),
             contentPadding = PaddingValues(horizontal = 16.dp)
         ) {
-            Text("Open")
+            Text(stringResource(Res.string.open_button))
         }
     }
 }
 
 @Composable
-private fun EmptyOfflineState() {
+private fun EmptyOfflineState(bottomPadding: androidx.compose.ui.unit.Dp) {
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = bottomPadding), // 🟢 تعويض البار السفلي لمنع انزياح الأيقونة لأسفل
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -123,9 +149,12 @@ private fun EmptyOfflineState() {
             tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
         )
         Spacer(Modifier.height(16.dp))
-        Text("No downloads yet", fontWeight = FontWeight.Medium)
         Text(
-            "Guides you download will appear here.",
+            text = stringResource(Res.string.no_downloads_title),
+            fontWeight = FontWeight.Medium
+        )
+        Text(
+            text = stringResource(Res.string.no_downloads_sub),
             fontSize = 13.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

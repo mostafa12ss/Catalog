@@ -1,19 +1,35 @@
 package com.learn.catalog2.domain.models.DataModels
 
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class Course(
     val id: String,
-    val rank: Int,
-    val title: String,
-    val subtitle: String,
+    val rank: Int = 0,
+    val title: String = "",
+    val subtitle: String = "",
     val author: String = "",
     val level: String = "Beginner",
-    val points: Int,
-    val downloads: Int,
-    val rating: Float=0.0f,
+    val points: Int = 0,
+    val downloads: Int = 0,
+    val rating: Float = 0.0f,
+
+    @SerialName("is_saved")
     val isSaved: Boolean = false,
-    val isDownloaded: Boolean = false, // إضافة الخاصية المفقودة
+
+    @SerialName("is_downloaded")
+    val isDownloaded: Boolean = false,
+
+    @SerialName("file_urls")
     val fileUrls: List<String> = emptyList(),
-    val localPath: String? = null,           // 👈 المسار المحلي بعد التنزيل (C:/Downloads/CV_Mahmoud.pdf)
-    val categoryId: String = "",       // 👈 لحفظ ID الفئة
+
+    @SerialName("local_path")
+    val localPath: String? = null,
+
+    @SerialName("category_id")
+    val categoryId: String = "",
+
+    @SerialName("category_name")
     val categoryName: String = ""
 )

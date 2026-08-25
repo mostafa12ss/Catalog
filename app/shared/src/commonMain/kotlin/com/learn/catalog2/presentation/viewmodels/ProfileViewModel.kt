@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
 class ProfileViewModel(
     private val userRepository: UserRepository,
     private val guideRepository: GuideRepository,
-    private val walletRepository: WalletRepository, // 👈 ربط المحفظة للرصيد الحقيقي
+    private val walletRepository: WalletRepository,
     private val supabase: SupabaseClient
 ) : ViewModel() {
 
@@ -29,7 +29,7 @@ class ProfileViewModel(
 
     // 💡 الإحصائيات تتحدث أوتوماتيكياً مع تغيّر المستخدم الحالي
     val userStats: StateFlow<UserProfileStats> = _user
-        .flatMapLatest { currentUser ->
+        .flatMapLatest {
             guideRepository.getUserStatsFlow()
         }
         .stateIn(
@@ -82,7 +82,9 @@ class ProfileViewModel(
                         _user.value = null
                         _isLoading.value = false
                     }
-                    else -> {}
+                    else -> {
+                        _isLoading.value = false
+                    }
                 }
             }
         }
@@ -158,6 +160,7 @@ class ProfileViewModel(
         viewModelScope.launch {
             try {
                 supabase.auth.signOut()
+                _user.value = null
                 onSuccess()
             } catch (e: Exception) {
                 e.printStackTrace()

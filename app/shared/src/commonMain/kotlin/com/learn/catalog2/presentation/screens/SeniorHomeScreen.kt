@@ -17,6 +17,7 @@ import catalog2.app.shared.generated.resources.Res
 import catalog2.app.shared.generated.resources.*
 import com.learn.catalog2.domain.models.AppUser
 import com.learn.catalog2.domain.models.DataModels.Course
+import com.learn.catalog2.presentation.Navigation.LocalBottomPadding
 import com.learn.catalog2.presentation.components.StatsSection
 import com.learn.catalog2.presentation.viewmodels.ExploreViewModel
 import com.learn.catalog2.presentation.viewmodels.ProfileViewModel
@@ -29,14 +30,17 @@ fun SeniorHomeScreen(
     profileViewModel: ProfileViewModel = koinViewModel(),
     exploreViewModel: ExploreViewModel = koinViewModel()
 ) {
-    // 💡 1. جلب بيانات المستخدم والإحصائيات والكتالوجات الحقيقية
+    // Fetch real user data, statistics, and catalogs / جلب بيانات المستخدم والإحصائيات والكتالوجات الحقيقية
     val userStats by profileViewModel.userStats.collectAsState()
     val userNullable by profileViewModel.user.collectAsState()
     val user = userNullable ?: AppUser.getDemoUser()
 
     val allCourses by exploreViewModel.allCourses.collectAsState()
 
-    // 💡 2. فلترة الكتالوجات المنشورة بواسطة المستخدم الحالي فقط
+    // 🟢 جلب قيمة الـ Padding السفلي المخصصة للبار الطافي
+    val bottomPadding = LocalBottomPadding.current
+
+    // Filter catalogs published by the current user only / فلترة الكتالوجات المنشورة بواسطة المستخدم الحالي فقط
     val myGuides = remember(allCourses, user) {
         allCourses.filter { course ->
             course.author.equals(user.fullName, ignoreCase = true) ||
@@ -53,14 +57,14 @@ fun SeniorHomeScreen(
     ) {
         Spacer(Modifier.height(4.dp))
 
-        // 💡 3. عرض كروت الإحصائيات الحقيقية وضع الـ Senior (Published / Downloads / Earned)
+        // Display Senior mode statistics / عرض إحصائيات وضع الـ Senior
         StatsSection(
             user = user,
             isSeniorMode = true,
             stats = userStats
         )
 
-        // 4. كارت نشر كتالوج جديد
+        // Publish new catalog card / كارت نشر كتالوج جديد
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -93,7 +97,7 @@ fun SeniorHomeScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        // 5. عرض الكتالوجات المرفوعة المفلترة
+        // Empty state or published guides list / حالة عدم وجود عناصر أو عرض الكتالوجات المرفوعة
         if (myGuides.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -102,7 +106,7 @@ fun SeniorHomeScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    "لم تقم بنشر أي كتالوجات بعد.",
+                    text = stringResource(Res.string.no_published_catalogs),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -115,7 +119,8 @@ fun SeniorHomeScreen(
             }
         }
 
-        Spacer(Modifier.height(16.dp))
+        // 🟢 مسافة سفلية ديناميكية تمنع انغماس آخر الكروت تحت الشريط السفلي الطافي
+        Spacer(Modifier.height(bottomPadding + 24.dp))
     }
 }
 

@@ -1,13 +1,14 @@
 package com.learn.catalog2
 
-
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.learn.catalog2.domain.UseCases.PurchaseGuideUseCase.PurchaseResult
 import com.learn.catalog2.presentation.utils.PurchaseManager
+import kotlinx.coroutines.launch // 2. استيراد launch لاستدعاء suspend functions
 import org.koin.compose.koinInject
 
 @Composable
@@ -19,6 +20,7 @@ fun GlobalPurchaseHandler(
     var showNoBalanceDialog by remember { mutableStateOf(false) }
     var requiredPoints by remember { mutableStateOf(0) }
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope() // إنشاء Scope للـ Suspension Functions
 
     LaunchedEffect(Unit) {
         purchaseManager.purchaseResult.collect { result ->
@@ -28,10 +30,14 @@ fun GlobalPurchaseHandler(
                     showNoBalanceDialog = true
                 }
                 is PurchaseResult.Success -> {
-                    snackbarHostState.showSnackbar("تم الشراء والتنزيل بنجاح!")
+                    scope.launch {
+                        snackbarHostState.showSnackbar("تم الشراء والتنزيل بنجاح!")
+                    }
                 }
                 is PurchaseResult.Error -> {
-                    snackbarHostState.showSnackbar(result.message)
+                    scope.launch {
+                        snackbarHostState.showSnackbar(result.message)
+                    }
                 }
             }
         }
@@ -40,7 +46,11 @@ fun GlobalPurchaseHandler(
     Box(modifier = Modifier.fillMaxSize()) {
         content()
 
-        // الـ Dialog المركزي لشحن الرصيد
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
+
         if (showNoBalanceDialog) {
             AlertDialog(
                 onDismissRequest = { showNoBalanceDialog = false },

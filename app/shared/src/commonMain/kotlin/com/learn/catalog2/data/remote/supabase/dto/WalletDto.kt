@@ -7,5 +7,7 @@ import kotlinx.serialization.Serializable
 data class WalletDto(
     @SerialName("user_id") val userId: String,
     @SerialName("points_balance") val pointsBalance: Float = 0f,
-    @SerialName("earnings_balance") val earningsBalance: Float = 0f
+    @SerialName("earnings_balance") val earningsBalance: Float = 0f,
+    @SerialName("points") val points: Int = 0,
+    @SerialName("free_claim_count") val freeClaimCount: Int = 0
 )

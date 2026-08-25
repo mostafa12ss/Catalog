@@ -18,7 +18,7 @@ interface WalletRepository {
         amountPoints: Float,
         amountCash: Float
     ): Result<Unit>
-
+    suspend fun claimFreeRewardPoints(): Result<Unit>
     // 👈 جلب طلبات السحب الخاصة بالمستخدم
     suspend fun getWithdrawalRequests(): Result<List<WithdrawalRequestDto>>
 }

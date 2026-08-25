@@ -14,8 +14,10 @@ import kotlinx.coroutines.launch
 class ExploreViewModel(
     private val repository: GuideRepository,
     private val walletRepository: WalletRepository,
-    private val purchaseManager: PurchaseManager // 👈 تغيير هنا: حَقن PurchaseManager
+    private val purchaseManager: PurchaseManager
 ) : ViewModel() {
+
+    private var isSynced = false
 
     init {
         refresh()
@@ -24,33 +26,50 @@ class ExploreViewModel(
     val allCourses: StateFlow<List<Course>> = repository.getCatalogsFlow()
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
+            started = SharingStarted.Eagerly,
             initialValue = emptyList()
         )
 
     private val _selectedCategoryId = MutableStateFlow<String?>(null)
     val selectedCategoryId: StateFlow<String?> = _selectedCategoryId.asStateFlow()
 
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    // ⚡ الفلترة المرنة والآمنة بعد إصلاح توقيع دالة combine
     val trendingCourses: StateFlow<List<Course>> = combine(
-        repository.getCatalogsFlow(),
-        _selectedCategoryId
-    ) { catalogs, categoryId ->
-        val filtered = if (categoryId == null) {
-            catalogs
-        } else {
-            catalogs.filter { it.categoryId == categoryId }
-        }
-        filtered.sortedByDescending { it.downloads }
+        allCourses,
+        _selectedCategoryId,
+        _searchQuery
+    ) { catalogs, selectedCategory, query ->
+        if (catalogs.isEmpty()) return@combine emptyList()
+
+        catalogs.filter { course ->
+            val matchesCategory = selectedCategory.isNullOrBlank() ||
+                    course.categoryId.equals(selectedCategory, ignoreCase = true) ||
+                    course.categoryName.equals(selectedCategory, ignoreCase = true)
+
+            val matchesSearch = query.isBlank() ||
+                    course.title.contains(query, ignoreCase = true) ||
+                    course.subtitle.contains(query, ignoreCase = true) ||
+                    course.author.contains(query, ignoreCase = true)
+
+            matchesCategory && matchesSearch
+        }.sortedByDescending { it.downloads }
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Eagerly,
         initialValue = emptyList()
     )
 
-    fun selectCategory(categoryId: String) {
+    fun selectCategory(categoryIdentifier: String) {
         _selectedCategoryId.update { current ->
-            if (current == categoryId) null else categoryId
+            if (current.equals(categoryIdentifier, ignoreCase = true)) null else categoryIdentifier
         }
+    }
+
+    fun searchGuides(query: String) {
+        _searchQuery.value = query
     }
 
     val categories: StateFlow<List<Category>> = combine(
@@ -58,23 +77,24 @@ class ExploreViewModel(
         repository.getCategoryCountsFlow()
     ) { categoryList, countMap ->
         categoryList.map { category ->
-            val realCount = countMap[category.id]?.toInt() ?: 0
+            val realCount = countMap[category.id]?.toInt()
+                ?: countMap[category.name]?.toInt()
+                ?: category.count
             category.copy(count = realCount)
         }
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Eagerly,
         initialValue = emptyList()
     )
 
     private val _userRole = MutableStateFlow(UserRole.JUNIOR)
     val userRole: StateFlow<UserRole> = _userRole.asStateFlow()
 
-    // ⚡ نقاط المحفظة المباشرة
     val pointsBalance: StateFlow<Int> = walletRepository.getBalance()
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
+            started = SharingStarted.Eagerly,
             initialValue = 0
         )
 
@@ -82,8 +102,17 @@ class ExploreViewModel(
     val downloadingIds: StateFlow<Set<String>> = _downloadingIds.asStateFlow()
 
     fun refresh() {
+        if (isSynced) return
         viewModelScope.launch {
             repository.syncData()
+            isSynced = true
+        }
+    }
+
+    fun forceSync() {
+        viewModelScope.launch {
+            repository.syncData()
+            isSynced = true
         }
     }
 
@@ -93,13 +122,6 @@ class ExploreViewModel(
         }
     }
 
-    fun searchGuides(query: String) {
-        viewModelScope.launch {
-            repository.searchGuides(query)
-        }
-    }
-
-    // ⚡ دالة الشراء والتنزيل أصبحت تمرر العملية للمدير المركزي
     fun downloadGuide(guide: Course) {
         if (_downloadingIds.value.contains(guide.id)) return
 
@@ -107,6 +129,10 @@ class ExploreViewModel(
             _downloadingIds.update { it + guide.id }
             try {
                 purchaseManager.processPurchase(guide)
+
+                // 💡 خصم النقاط محلياً في الـ UI State فور نجاح العملية
+
+
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
@@ -118,12 +144,8 @@ class ExploreViewModel(
     fun rateGuide(guideId: String, rating: Float) {
         viewModelScope.launch {
             repository.rateGuide(guideId, rating)
-                .onSuccess {
-                    println("✅ Guide rated successfully")
-                }
-                .onFailure { error ->
-                    println("❌ Error rating guide: ${error.message}")
-                }
+                .onSuccess { println("✅ Guide rated successfully") }
+                .onFailure { error -> println("❌ Error rating guide: ${error.message}") }
         }
     }
 }

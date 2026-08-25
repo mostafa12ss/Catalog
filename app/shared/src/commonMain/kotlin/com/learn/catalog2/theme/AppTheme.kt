@@ -9,28 +9,29 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 
+
 private val DarkColorScheme = darkColorScheme(
-    primary = TealDark,
-    onPrimary = WhiteDark,
+    primary = TealTextDark, // 🟢 جعل اللون الأساسي أفتح قليلاً للأيقونات المحددة
+    onPrimary = BgDark,
     primaryContainer = TealDimDark,
     onPrimaryContainer = TealTextDark,
 
-    secondary = AmberDark,
-    onSecondary = WhiteDark,
+    secondary = AmberTextDark,
+    onSecondary = BgDark,
     secondaryContainer = AmberDimDark,
     onSecondaryContainer = AmberTextDark,
 
-    tertiary = EmeraldDark,
-    onTertiary = WhiteDark,
+    tertiary = EmeraldTextDark,
+    onTertiary = BgDark,
     tertiaryContainer = EmeraldDimDark,
     onTertiaryContainer = EmeraldTextDark,
 
-    background = BgDark,
+    background = BgDark, // 0xFF0F172A (الأسود الداكن المائل للكحلي Slate)
     onBackground = Text1Dark,
 
-    surface = SurfaceDark,
+    surface = SurfaceDark, // 0xFF1E293B (الكروت)
     onSurface = Text1Dark,
-    surfaceVariant = SurfaceRaiseDark,
+    surfaceVariant = SurfaceRaiseDark, // 0xFF253347 (الـ Floating Bottom Bar)
     onSurfaceVariant = Text2Dark,
 
     error = RedDark,
@@ -40,7 +41,7 @@ private val DarkColorScheme = darkColorScheme(
 
     outline = BorderStrongDark,
     outlineVariant = BorderDark,
-    scrim = OverlayBgDark // تم استخدام ألوان الـ Overlay
+    scrim = OverlayBgDark
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -74,7 +75,7 @@ private val LightColorScheme = lightColorScheme(
 
     outline = BorderStrongLight,
     outlineVariant = BorderLight,
-    scrim = OverlayBgLight // تم استخدام ألوان الـ Overlay
+    scrim = OverlayBgLight
 )
 
 @Composable
@@ -86,7 +87,10 @@ fun CatalogTheme(
     val colors = if (darkTheme) DarkColorScheme else LightColorScheme
     val layoutDirection = if (isArabic) LayoutDirection.Rtl else LayoutDirection.Ltr
 
-    CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
+    // ⚡ ضبط اتجاه الواجهة والـ Typography بناءً على اللغة
+    CompositionLocalProvider(
+        LocalLayoutDirection provides layoutDirection
+    ) {
         MaterialTheme(
             colorScheme = colors,
             typography = getCatalogTypography(isArabic),

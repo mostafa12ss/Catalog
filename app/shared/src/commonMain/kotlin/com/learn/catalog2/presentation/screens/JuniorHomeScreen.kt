@@ -21,6 +21,7 @@ import catalog2.app.shared.generated.resources.Res
 import catalog2.app.shared.generated.resources.*
 import com.learn.catalog2.domain.models.DataModels.Category
 import com.learn.catalog2.domain.models.DataModels.Course
+import com.learn.catalog2.presentation.Navigation.LocalBottomPadding
 import com.learn.catalog2.presentation.viewmodels.ExploreViewModel
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -48,13 +49,16 @@ fun JuniorHomeScreen(
     val guides by viewModel.trendingCourses.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val downloadingIds by viewModel.downloadingIds.collectAsState()
-
-    // 💡 تم حذف downloadStatus لأن GlobalPurchaseHandler أصبح يعالج التنبيهات على مستوى التطبيق بالكامل
+    val selectedCategory by viewModel.selectedCategoryId.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
 
     JuniorHomeScreenContent(
         guides = guides,
         categories = categories,
+        selectedCategoryId = selectedCategory,
+        searchQuery = searchQuery,
         downloadingIds = downloadingIds,
+        onCategorySelect = { categoryId -> viewModel.selectCategory(categoryId) },
         onSearch = { query: String -> viewModel.searchGuides(query) },
         onFavoriteToggle = { id: String, isFav: Boolean -> viewModel.toggleFavorite(id, isFav) },
         onDownloadClick = { guide: Course -> viewModel.downloadGuide(guide) },
@@ -66,239 +70,221 @@ fun JuniorHomeScreen(
 fun JuniorHomeScreenContent(
     guides: List<Course>,
     categories: List<Category>,
+    selectedCategoryId: String?,
+    searchQuery: String,
     downloadingIds: Set<String>,
+    onCategorySelect: (String) -> Unit,
     onSearch: (String) -> Unit,
     onFavoriteToggle: (String, Boolean) -> Unit,
     onDownloadClick: (Course) -> Unit,
     onRateClick: (String, Float) -> Unit
 ) {
-    var searchQuery by remember { mutableStateOf("") }
-    var selectedCategoryId by remember { mutableStateOf("all") }
-
     var isSortMenuExpanded by remember { mutableStateOf(false) }
     var currentSortOption by remember { mutableStateOf(SortOption.DEFAULT) }
+
+    val bottomPadding = LocalBottomPadding.current
 
     val displayCategories = remember(categories) {
         if (categories.isEmpty()) FallbackCategories else categories
     }
 
-    val filteredAndSortedGuides = remember(guides, searchQuery, selectedCategoryId, displayCategories, currentSortOption) {
-        val selectedCategory = displayCategories.find { it.id == selectedCategoryId }
-
-        val filtered = guides.filter { guide ->
-            val cleanQuery = searchQuery.trim()
-            val matchesSearch = cleanQuery.isEmpty() ||
-                    guide.title.contains(cleanQuery, ignoreCase = true) ||
-                    guide.author.contains(cleanQuery, ignoreCase = true)
-
-            val matchesCategory = if (selectedCategoryId == "all") {
-                true
-            } else {
-                guide.categoryId == selectedCategoryId ||
-                        (selectedCategory != null && guide.categoryName.equals(selectedCategory.name, ignoreCase = true))
-            }
-
-            matchesSearch && matchesCategory
-        }
-
+    // 🟢 الترتيب المحلي المباشر بناءً على البيانات القادمة من الـ ViewModel
+    val sortedGuides = remember(guides, currentSortOption) {
         when (currentSortOption) {
-            SortOption.MOST_DOWNLOADED -> filtered.sortedByDescending { it.downloads }
-            SortOption.HIGHEST_RATED -> filtered.sortedByDescending { it.rating.toString() }
-            SortOption.PRICE_LOW_TO_HIGH -> filtered.sortedBy { it.points }
-            SortOption.PRICE_HIGH_TO_LOW -> filtered.sortedByDescending { it.points }
-            SortOption.DEFAULT -> filtered
+            SortOption.MOST_DOWNLOADED -> guides.sortedByDescending { it.downloads }
+            SortOption.HIGHEST_RATED -> guides.sortedByDescending { it.rating }
+            SortOption.PRICE_LOW_TO_HIGH -> guides.sortedBy { it.points }
+            SortOption.PRICE_HIGH_TO_LOW -> guides.sortedByDescending { it.points }
+            SortOption.DEFAULT -> guides
         }
     }
 
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.TopCenter
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .widthIn(max = 600.dp)
-                .fillMaxSize()
-                .padding(horizontal = 20.dp)
-        ) {
-            Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(8.dp))
 
-            // Search Bar
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { newQuery ->
-                    searchQuery = newQuery
-                    onSearch(newQuery)
-                },
-                placeholder = { Text(stringResource(Res.string.search_ph)) },
-                leadingIcon = {
-                    if (LocalInspectionMode.current) {
-                        Text("🔍", fontSize = 18.sp)
-                    } else {
-                        Icon(
-                            painter = painterResource(Res.drawable.baseline_search_24),
-                            contentDescription = "Search"
-                        )
-                    }
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(50),
-                modifier = Modifier.fillMaxWidth()
+        // Search Bar
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = onSearch,
+            placeholder = { Text(stringResource(Res.string.search_ph)) },
+            leadingIcon = {
+                if (LocalInspectionMode.current) {
+                    Text("🔍", fontSize = 18.sp)
+                } else {
+                    Icon(
+                        painter = painterResource(Res.drawable.baseline_search_24),
+                        contentDescription = "Search"
+                    )
+                }
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(50),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        // Category Chips
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(vertical = 4.dp)
+        ) {
+            item {
+                val isAllSelected = selectedCategoryId == null
+                FilterChip(
+                    selected = isAllSelected,
+                    onClick = { if (!isAllSelected) onCategorySelect("") },
+                    label = { Text(stringResource(Res.string.tab_all)) },
+                    shape = RoundedCornerShape(50),
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = isAllSelected,
+                        borderColor = Color.Transparent,
+                        selectedBorderColor = Color.Transparent
+                    )
+                )
+            }
+
+            items(displayCategories, key = { it.id }) { category ->
+                val isSelected = selectedCategoryId.equals(category.id, ignoreCase = true) ||
+                        selectedCategoryId.equals(category.name, ignoreCase = true)
+                FilterChip(
+                    selected = isSelected,
+                    onClick = { onCategorySelect(category.id) },
+                    label = { Text(category.name) },
+                    shape = RoundedCornerShape(50),
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = isSelected,
+                        borderColor = Color.Transparent,
+                        selectedBorderColor = Color.Transparent
+                    )
+                )
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // Results Header + Sort Menu
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(Res.string.results_count, sortedGuides.size),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 13.sp
             )
 
-            Spacer(Modifier.height(16.dp))
-
-            // Category Chips
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(vertical = 4.dp)
-            ) {
-                item {
-                    FilterChip(
-                        selected = selectedCategoryId == "all",
-                        onClick = { selectedCategoryId = "all" },
-                        label = { Text(stringResource(Res.string.tab_all)) },
-                        shape = RoundedCornerShape(50),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = selectedCategoryId == "all",
-                            borderColor = Color.Transparent,
-                            selectedBorderColor = Color.Transparent
-                        )
+            Box {
+                OutlinedButton(
+                    onClick = { isSortMenuExpanded = true },
+                    shape = RoundedCornerShape(50),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.outline_filter_alt_24),
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
                     )
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(Res.string.sort_filter), fontSize = 13.sp)
                 }
 
-                items(displayCategories, key = { it.id }) { category ->
-                    FilterChip(
-                        selected = selectedCategoryId == category.id,
-                        onClick = { selectedCategoryId = category.id },
-                        label = { Text(category.name) },
-                        shape = RoundedCornerShape(50),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = selectedCategoryId == category.id,
-                            borderColor = Color.Transparent,
-                            selectedBorderColor = Color.Transparent
-                        )
+                DropdownMenu(
+                    expanded = isSortMenuExpanded,
+                    onDismissRequest = { isSortMenuExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.sort_default)) },
+                        onClick = {
+                            currentSortOption = SortOption.DEFAULT
+                            isSortMenuExpanded = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.sort_most_downloaded)) },
+                        onClick = {
+                            currentSortOption = SortOption.MOST_DOWNLOADED
+                            isSortMenuExpanded = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.sort_highest_rated)) },
+                        onClick = {
+                            currentSortOption = SortOption.HIGHEST_RATED
+                            isSortMenuExpanded = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.sort_price_low)) },
+                        onClick = {
+                            currentSortOption = SortOption.PRICE_LOW_TO_HIGH
+                            isSortMenuExpanded = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.sort_price_high)) },
+                        onClick = {
+                            currentSortOption = SortOption.PRICE_HIGH_TO_LOW
+                            isSortMenuExpanded = false
+                        }
                     )
                 }
             }
+        }
 
-            Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
 
-            // Results Header + Sort Menu
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        // Empty State & List
+        if (sortedGuides.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "${filteredAndSortedGuides.size} results",
+                    text = stringResource(Res.string.no_results),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 13.sp
+                    fontSize = 14.sp
                 )
-
-                Box {
-                    OutlinedButton(
-                        onClick = { isSortMenuExpanded = true },
-                        shape = RoundedCornerShape(50),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(Res.drawable.outline_filter_alt_24),
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(stringResource(Res.string.sort_filter), fontSize = 13.sp)
-                    }
-
-                    DropdownMenu(
-                        expanded = isSortMenuExpanded,
-                        onDismissRequest = { isSortMenuExpanded = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("الأفتراضي (Default)") },
-                            onClick = {
-                                currentSortOption = SortOption.DEFAULT
-                                isSortMenuExpanded = false
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("الأكثر تنزيلاً (Most Downloaded)") },
-                            onClick = {
-                                currentSortOption = SortOption.MOST_DOWNLOADED
-                                isSortMenuExpanded = false
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("الأعلى تقييماً (Highest Rated)") },
-                            onClick = {
-                                currentSortOption = SortOption.HIGHEST_RATED
-                                isSortMenuExpanded = false
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("الأقل نقاطاً (Points: Low to High)") },
-                            onClick = {
-                                currentSortOption = SortOption.PRICE_LOW_TO_HIGH
-                                isSortMenuExpanded = false
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("الأعلى نقاطاً (Points: High to Low)") },
-                            onClick = {
-                                currentSortOption = SortOption.PRICE_HIGH_TO_LOW
-                                isSortMenuExpanded = false
-                            }
-                        )
-                    }
-                }
             }
-
-            Spacer(Modifier.height(12.dp))
-
-            // Feed / Empty State
-            if (filteredAndSortedGuides.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "لا توجد نتائج تطابق بحثك",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 14.sp
+        } else {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(
+                    top = 4.dp,
+                    bottom = bottomPadding + 24.dp
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(sortedGuides, key = { it.id }) { guide ->
+                    GuideListCard(
+                        guide = guide,
+                        isDownloading = downloadingIds.contains(guide.id),
+                        onFavoriteToggle = { onFavoriteToggle(guide.id, !guide.isSaved) },
+                        onDownloadClick = { onDownloadClick(guide) },
+                        onRateClick = { rating -> onRateClick(guide.id, rating) }
                     )
-                }
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    contentPadding = PaddingValues(bottom = 24.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    items(filteredAndSortedGuides, key = { it.id }) { guide ->
-                        GuideListCard(
-                            guide = guide,
-                            isDownloading = downloadingIds.contains(guide.id),
-                            onFavoriteToggle = { onFavoriteToggle(guide.id, !guide.isSaved) },
-                            onDownloadClick = { onDownloadClick(guide) },
-                            onRateClick = { rating -> onRateClick(guide.id, rating) }
-                        )
-                    }
                 }
             }
         }
@@ -346,7 +332,11 @@ private fun GuideListCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(guide.title, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                Text(guide.author.ifEmpty { "Eng. Unknown" }, fontSize = 12.sp, color = Color.Gray)
+                Text(
+                    text = guide.author.ifEmpty { stringResource(Res.string.eng_unknown) },
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
 
                 Spacer(Modifier.height(8.dp))
 
@@ -367,7 +357,7 @@ private fun GuideListCard(
                         Text(guide.level, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = levelColor)
                     }
 
-                    Text("${guide.downloads} dl", fontSize = 11.sp, color = Color.Gray)
+                    Text("${guide.downloads} ${stringResource(Res.string.dl_unit)}", fontSize = 11.sp, color = Color.Gray)
 
                     Text(
                         text = "★ ${guide.rating}",
@@ -382,12 +372,22 @@ private fun GuideListCard(
             Spacer(Modifier.width(8.dp))
 
             Column(horizontalAlignment = Alignment.End) {
-                Text("${guide.points} pts", color = Color(0xFFD97706), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text(
+                    text = "${guide.points} ${stringResource(Res.string.pts_unit)}",
+                    color = Color(0xFFD97706),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
                 Spacer(Modifier.height(8.dp))
 
                 if (guide.isDownloaded) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("✓ Saved", color = Color(0xFF00796B), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text(
+                            text = stringResource(Res.string.saved),
+                            color = Color(0xFF00796B),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
                     }
                 } else {
                     Button(
@@ -437,10 +437,10 @@ fun RatingDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("تقييم الكتالوج", fontWeight = FontWeight.Bold) },
+        title = { Text(stringResource(Res.string.rate_catalog_title), fontWeight = FontWeight.Bold) },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("اختر تقييمك لهذا الملف:")
+                Text(stringResource(Res.string.rate_catalog_desc))
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     (1..5).forEach { index ->
@@ -460,12 +460,12 @@ fun RatingDialog(
                 onSubmitRating(selectedRating.toFloat())
                 onDismiss()
             }) {
-                Text("إرسال")
+                Text(stringResource(Res.string.send))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("إلغاء")
+                Text(stringResource(Res.string.cancel))
             }
         }
     )

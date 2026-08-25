@@ -4,10 +4,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -18,7 +21,11 @@ import androidx.navigation.compose.rememberNavController
 import com.learn.catalog2.domain.models.UserRole
 import com.learn.catalog2.presentation.screens.*
 import com.learn.catalog2.presentation.viewmodels.ProfileViewModel
+import com.learn.catalog2.presentation.viewmodels.WalletViewModel
 import org.koin.compose.viewmodel.koinViewModel
+
+// Local composition لتمرير الـ Padding السفلي للشاشات بسهولة
+val LocalBottomPadding = compositionLocalOf { 0.dp }
 
 @Composable
 fun MainScaffold() {
@@ -27,8 +34,10 @@ fun MainScaffold() {
     val currentRoute = backStackEntry?.destination?.route
 
     val profileViewModel: ProfileViewModel = koinViewModel()
+    val walletViewModel: WalletViewModel = koinViewModel()
+
     val currentRole by profileViewModel.currentRole.collectAsState()
-    val pointsBalance by profileViewModel.pointsBalance.collectAsState()
+    val pointsBalance by walletViewModel.pointsBalance.collectAsState()
 
     val screenTitle = when (currentRoute) {
         AppDestination.Home.route -> if (currentRole == UserRole.JUNIOR) "Learn & Download" else "Provide Guides"
@@ -40,9 +49,12 @@ fun MainScaffold() {
         else -> ""
     }
 
+    val showBottomBar = currentRoute != "add_catalog" && currentRoute != "wallet"
+
     Scaffold(
+        // 🟢 تلوين خلفية التطبيق تلقائياً من الـ Theme (سواء Dark أو Light)
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            // فحص ما إذا كانت الشاشة الحالية شاشة فرعية تحتاج زر رجوع
             val isSubScreen = currentRoute == "wallet" || currentRoute == "add_catalog"
 
             AppTopBar(
@@ -51,7 +63,6 @@ fun MainScaffold() {
                 pointsBalance = pointsBalance,
                 showBackButton = isSubScreen,
                 onBackClick = {
-                    // 👈 تنفيذ العودة أينما كان المستخدم
                     navController.popBackStack()
                 },
                 onRoleClick = { profileViewModel.toggleRole() },
@@ -63,55 +74,51 @@ fun MainScaffold() {
             )
         },
         bottomBar = {
-            if (currentRoute != "add_catalog" && currentRoute != "wallet") {
+            if (showBottomBar) {
                 AppBottomBar(navController)
             }
         }
     ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            contentAlignment = Alignment.TopCenter
-        ) {
+        // حساب الـ Padding السفلي فقط للشاشات لمنع غرق آخر عنصر تحت الشريط الطافي
+        val bottomPadding = if (showBottomBar) 80.dp else 0.dp
+
+        CompositionLocalProvider(LocalBottomPadding provides bottomPadding) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .widthIn(max = 840.dp)
+                    .padding(top = innerPadding.calculateTopPadding()),
+                contentAlignment = Alignment.TopCenter
             ) {
-                NavHost(
-                    navController = navController,
-                    startDestination = AppDestination.Home.route
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .widthIn(max = 840.dp)
                 ) {
-                    composable(AppDestination.Home.route) {
-                        HomeScreen(
-                            role = currentRole,
-                            onAddCatalogClick = { navController.navigate("add_catalog") }
-                        )
-                    }
-                    composable(AppDestination.Explore.route) {
-                        ExploreScreen(navController = navController)
-                    }
-                    composable(AppDestination.Offline.route) {
-                        OfflineScreen()
-                    }
-                    composable(AppDestination.Profile.route) {
-                        ProfileScreen(navController = navController)
-                    }
-                    composable("add_catalog") {
-                        AddNewCatalogScreen(onDismiss = { navController.popBackStack() })
-                    }
-
-                    // 💡 الربط الصحيح لـ WalletScreen
-                    composable("wallet") {
-                        WalletScreen(
-                            onTopUpClick = {
-                                // أضف منطق فتح نافذة الشحن هنا عند الحاجة
-                            },
-                            onWithdrawClick = {
-                                // أضف منطق عملية السحب هنا عند الحاجة
-                            }
-                        )
+                    NavHost(
+                        navController = navController,
+                        startDestination = AppDestination.Home.route
+                    ) {
+                        composable(AppDestination.Home.route) {
+                            HomeScreen(
+                                role = currentRole,
+                                onAddCatalogClick = { navController.navigate("add_catalog") }
+                            )
+                        }
+                        composable(AppDestination.Explore.route) {
+                            ExploreScreen(navController = navController)
+                        }
+                        composable(AppDestination.Offline.route) {
+                            OfflineScreen()
+                        }
+                        composable(AppDestination.Profile.route) {
+                            ProfileScreen(navController = navController)
+                        }
+                        composable("add_catalog") {
+                            AddNewCatalogScreen(onDismiss = { navController.popBackStack() })
+                        }
+                        composable("wallet") {
+                            WalletScreen(viewModel = walletViewModel)
+                        }
                     }
                 }
             }

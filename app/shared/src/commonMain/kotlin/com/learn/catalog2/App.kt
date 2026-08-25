@@ -10,6 +10,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.learn.catalog2.presentation.screens.AuthScreen
+import com.learn.catalog2.presentation.screens.DownloadScreen
 import com.learn.catalog2.presentation.screens.OnboardingScreen
 import com.learn.catalog2.presentation.viewmodels.AuthViewModel
 import org.koin.compose.viewmodel.koinViewModel
@@ -41,6 +42,9 @@ private fun RootNavigation() {
         val user = currentUserState
         val currentRoute = rootNavController.currentBackStackEntry?.destination?.route
 
+        // تجاهل التوجيه التلقائي إذا كان المستخدم حالياً في شاشة التنزيل
+        if (currentRoute == "download") return@LaunchedEffect
+
         if (user != null && currentRoute != "main") {
             rootNavController.navigate("main") {
                 popUpTo(0) { inclusive = true }
@@ -54,8 +58,20 @@ private fun RootNavigation() {
 
     NavHost(
         navController = rootNavController,
-        startDestination = "onboarding"
+        startDestination = "download" // ⚡ البداية بشاشة التنزيل للويب
     ) {
+        // ⚡ شاشة التنزيل المخصصة للويب
+        composable("download") {
+            DownloadScreen(
+                onNavigateToWebApp = {
+                    val targetDestination = if (currentUserState != null) "main" else "onboarding"
+                    rootNavController.navigate(targetDestination) {
+                        popUpTo("download") { inclusive = true }
+                    }
+                }
+            )
+        }
+
         composable("onboarding") {
             OnboardingScreen(
                 onGetStarted = {
@@ -77,11 +93,9 @@ private fun RootNavigation() {
         }
 
         composable("main") {
-            // 💡 تغليف شاشات التطبيق الأساسية بالـ GlobalPurchaseHandler
             GlobalPurchaseHandler(
                 onNavigateToWallet = {
-                    // التوجيه لشاشة المحفظة داخل الـ MainScaffold أو عبر الـ rootNavController
-                    rootNavController.navigate("main") // أو إرسال event للتنقيل لتاب المحفظة
+                    rootNavController.navigate("main")
                 }
             ) {
                 MainScaffold()

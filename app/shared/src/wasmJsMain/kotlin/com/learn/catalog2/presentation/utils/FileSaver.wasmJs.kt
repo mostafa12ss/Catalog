@@ -1,18 +1,41 @@
 package com.learn.catalog2.presentation.utils
 
-// jsMain أو wasmJsMain
 import kotlinx.browser.document
+import org.khronos.webgl.Uint8Array
+import org.khronos.webgl.set
 import org.w3c.dom.HTMLAnchorElement
+import org.w3c.dom.url.URL
+import org.w3c.files.Blob
+import org.w3c.files.BlobPropertyBag
+import kotlin.js.JsAny
+import kotlin.js.JsArray
 
-// 💡 استخدام JS Interop المخصص لـ Wasm لإنشاء Blob Download بدون أخطاء Types
-private external fun triggerWasmDownload(bytes: ByteArray, fileName: String)
-
-@OptIn(ExperimentalUnsignedTypes::class)
 actual fun saveDownloadedFile(fileName: String, bytes: ByteArray): String {
     val cleanName = fileName.split("/").last()
 
     try {
-        saveFileInWasm(bytes, cleanName)
+        val uint8Array = Uint8Array(bytes.size)
+        for (i in bytes.indices) {
+            uint8Array[i] = bytes[i]
+        }
+
+        // تحويل Uint8Array إلى Blob عبر JsArray نظيف وبدون Casting
+        val blob = Blob(
+            blobParts = jsArrayOf(uint8Array),
+            options = BlobPropertyBag(type = "application/octet-stream")
+        )
+
+        val blobUrl = URL.createObjectURL(blob)
+
+        val anchor = document.createElement("a") as HTMLAnchorElement
+        anchor.href = blobUrl
+        anchor.download = cleanName
+        document.body?.appendChild(anchor)
+        anchor.click()
+
+        document.body?.removeChild(anchor)
+        URL.revokeObjectURL(blobUrl)
+
     } catch (e: Exception) {
         println("❌ Wasm Download Error: ${e.message}")
     }
@@ -20,26 +43,9 @@ actual fun saveDownloadedFile(fileName: String, bytes: ByteArray): String {
     return "Downloaded via Browser: $cleanName"
 }
 
-// دالة مساعدة لعمل Trigger للتحميل مباشرة عبر JS Interop المتوافق مع Wasm
-private fun saveFileInWasm(bytes: ByteArray, fileName: String) {
-    val jsArray = bytes.toJsArray()
-    val blob = createBlob(jsArray, "application/octet-stream")
-    val url = createObjectUrl(blob)
-
-    val anchor = document.createElement("a") as HTMLAnchorElement
-    anchor.href = url
-    anchor.download = fileName
-    anchor.click()
-
-    revokeObjectUrl(url)
-}
-
-// 💡 JS External Functions متوافقة مع Wasm Compiler
-private fun createBlob(bytes: JsAny, type: String): JsAny = js("new Blob([bytes], { type: type })")
-private fun createObjectUrl(blob: JsAny): String = js("URL.createObjectURL(blob)")
-private fun revokeObjectUrl(url: String): Unit = js("URL.revokeObjectURL(url)")
-
-private fun ByteArray.toJsArray(): JsAny {
-    val uByteArray = this.toUByteArray()
-    return js("new Uint8Array(uByteArray)")
+// دالة مساعدة متوافقة مع Kotlin/Wasm لتغليف العناصر داخل JsArray
+private fun jsArrayOf(element: JsAny): JsArray<JsAny?> {
+    val array = JsArray<JsAny?>()
+    array[0] = element
+    return array
 }

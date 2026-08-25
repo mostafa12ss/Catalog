@@ -13,7 +13,6 @@ class WalletViewModel(
     private val walletRepository: WalletRepository
 ) : ViewModel() {
 
-    // 💡 تم استخدام getBalance() بدلاً من getPointsBalance() ليطابق اسم الدالة في الـ Repository
     val pointsBalance: StateFlow<Int> = walletRepository.getBalance()
         .stateIn(
             scope = viewModelScope,
@@ -28,6 +27,14 @@ class WalletViewModel(
             initialValue = emptyList()
         )
 
+    // دالة المطالبة بالنقاط المجانية وتمرير النتيجة لـ WalletScreen
+    fun claimFreeRewardPoints(onResult: (Result<Unit>) -> Unit) {
+        viewModelScope.launch {
+            val result = walletRepository.claimFreeRewardPoints()
+            onResult(result)
+        }
+    }
+
     // دالة شحن النقاط (تزيد الرصيد)
     fun topUpPoints(amount: Int, title: String = "Points Top Up") {
         viewModelScope.launch {
@@ -40,6 +47,7 @@ class WalletViewModel(
         if (pointsBalance.value < amount) return false // رصيد غير كافٍ
 
         viewModelScope.launch {
+            // ⚡ addTransaction ستطلق التحديث التلقائي للرصيد فور النجاح
             walletRepository.addTransaction(title = title, amount = amount, isIncome = false)
         }
         return true

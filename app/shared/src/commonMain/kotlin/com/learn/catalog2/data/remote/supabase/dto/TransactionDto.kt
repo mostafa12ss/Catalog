@@ -5,10 +5,10 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class TransactionDto(
-    val id: String? = null,
+    @SerialName("id") val id: String? = null,
     @SerialName("user_id") val userId: String,
-    val type: String,
-    val amount: Double,
+    @SerialName("type") val type: String,
+    @SerialName("amount") val amount: Double,
     @SerialName("related_guide_id") val relatedGuideId: String? = null,
     @SerialName("created_at") val createdAt: String? = null
 )

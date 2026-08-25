@@ -19,10 +19,26 @@ compose.desktop {
     application {
         mainClass = "com.learn.catalog2.MainKt"
         jvmArgs += listOf("-Dskiko.renderApi=OPENGL")
+
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "com.learn.catalog2"
+            packageName = "Catalog"
             packageVersion = "1.0.0"
+
+            // ⚡ إعدادات الأيقونات والهوية لكل نظام
+            macOS {
+                iconFile.set(project.file("src/jvmMain/resources/icon.icns"))
+                bundleID = "com.learn.catalog"
+            }
+            windows {
+//                iconFile.set(project.file("src/jvmMain/resources/icon.ico"))
+                shortcut = true
+                menuGroup = "Catalog"
+            }
+            linux {
+                iconFile.set(project.file("src/jvmMain/resources/icon.png"))
+                shortcut = true
+            }
         }
     }
 }

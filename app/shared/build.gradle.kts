@@ -35,6 +35,9 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+
+            implementation(compose.materialIconsExtended)
+
             api(projects.core)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
@@ -74,6 +77,7 @@ kotlin {
             implementation(libs.sqldelight.runtime)
             implementation(libs.sqldelight.coroutines)
 
+//            implementation("com.benasher4448:uuid:0.8.4")
 
             implementation(libs.compose.uiToolingPreview)        }
 
