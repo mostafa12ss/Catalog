@@ -1,0 +1,27 @@
+workflows:
+  ios-kmp-build:
+    name: Build iOS App (KMP)
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+    environment:
+      java: 17
+      xcode: latest
+    scripts:
+      - name: Set execution permission for gradlew
+        script: chmod +x gradlew
+      - name: Generate SQLDelight Code
+        script: ./gradlew generateSqlDelightInterface
+      - name: Build Kotlin iOS Framework
+        script: ./gradlew :app:shared:packForXCode -PXCODE_CONFIGURATION=Release
+      - name: Build iOS App
+        script: |
+          PROJ_PATH=$(find . -name "*.xcodeproj" -maxdepth 3 | head -n 1)
+          xcodebuild -project "$PROJ_PATH" \
+                     -scheme iosApp \
+                     -sdk iphoneos \
+                     -configuration Release \
+                     CODE_SIGNING_ALLOWED=NO \
+                     build
+    artifacts:
+      - build/Release-iphoneos/*.app
+      - '**/build/Release-iphoneos/*.app'
