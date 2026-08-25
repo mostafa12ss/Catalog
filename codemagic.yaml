@@ -19,6 +19,7 @@ workflows:
                      -sdk iphoneos \
                      -configuration Release \
                      CODE_SIGNING_ALLOWED=NO \
+                     OTHER_LDFLAGS='$(inherited) -lsqlite3' \
                      build
     artifacts:
       - build/Release-iphoneos/*.app
