@@ -21,9 +21,15 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Build iOS App
+      - name: Find and Build iOS App
         run: |
-          xcodebuild -project iosApp/iosApp.xcodeproj \
+          PROJ_PATH=$(find . -name "*.xcodeproj" -maxdepth 3 | head -n 1)
+          if [ -z "$PROJ_PATH" ]; then
+            echo "Error: No .xcodeproj found in repository!"
+            exit 1
+          fi
+          echo "Found Xcode project at: $PROJ_PATH"
+          xcodebuild -project "$PROJ_PATH" \
                      -scheme iosApp \
                      -sdk iphoneos \
                      -configuration Release \
@@ -34,4 +40,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ios-release-build
-          path: iosApp/build/Release-iphoneos/
+          path: '**/build/Release-iphoneos/'
