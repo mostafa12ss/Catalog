@@ -11,8 +11,6 @@ workflows:
         script: chmod +x gradlew
       - name: Generate SQLDelight Code
         script: ./gradlew generateSqlDelightInterface
-      - name: Build Kotlin iOS Framework
-        script: ./gradlew :app:shared:packForXCode -PXCODE_CONFIGURATION=Release
       - name: Build iOS App
         script: |
           PROJ_PATH=$(find . -name "*.xcodeproj" -maxdepth 3 | head -n 1)
