@@ -10,7 +10,6 @@ plugins {
 
 kotlin {
     jvmToolchain(11)
-
     listOf(
         iosArm64(),
         iosSimulatorArm64()
@@ -18,6 +17,7 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "Shared"
             isStatic = true
+            linkerOpts("-lsqlite3")
         }
     }
 
