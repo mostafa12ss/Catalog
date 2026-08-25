@@ -3,6 +3,7 @@ package com.learn.catalog2.data.local
 
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.native.NativeSqliteDriver
+import com.learn.catalog2.database.CatalogDatabase
 
 actual class DatabaseDriverFactory {
     actual fun createDriver(): SqlDriver {
