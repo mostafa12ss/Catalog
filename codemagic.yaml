@@ -21,6 +21,8 @@ workflows:
                      CODE_SIGNING_ALLOWED=NO \
                      OTHER_LDFLAGS='$(inherited) -lsqlite3' \
                      build
+          # ضغط التطبيق لملف zip واحد لسهولة التنزيل والرفع
+          cd /Users/builder/Library/Developer/Xcode/DerivedData/*/Build/Products/Release-iphoneos
+          zip -r Catalog2-iOS.zip *.app
     artifacts:
-      - build/Release-iphoneos/*.app
-      - '**/build/Release-iphoneos/*.app'
+      - /Users/builder/Library/Developer/Xcode/DerivedData/*/Build/Products/Release-iphoneos/*.zip
